@@ -19,20 +19,22 @@ const uploadOnCloudinary = async (localFilePath)=>{
             }
         )
         // since file has been uploaded successfully, remove temporary saved file
-        fs.unlink(localFilePath)
+        fs.unlinkSync(localFilePath)
+        return response
     } catch (error) {
         // error has occured, so unlink the file again
-        fs.unlink(localFilePath)
+        fs.unlinkSync(localFilePath)
         return null
     }
 }
+
 
 const deleteAsset = async(publicId)=>{
     try {
         const response = await cloudinary.uploader.destroy(publicId)
         return response
     } catch (error) {
-        
+        console.log(error)
     }
 }
 
