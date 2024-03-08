@@ -1,9 +1,13 @@
 import { Router } from "express";
 import {
     register,
-    login
+    login,
+    logout
 } from '../controllers/user.controller.js'
 import { upload } from "../middlewares/multer.middleware.js";
+import { verityJWT } from "../middlewares/verityJWT.middleware.js";
+
+
 const router = Router()
 
 router.route("/")
@@ -11,5 +15,8 @@ router.route("/")
 
 router.route("/login")
 .post(login)
+
+router.route('/logout')
+.post(verityJWT, logout)
 
 export default router

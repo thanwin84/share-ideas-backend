@@ -85,6 +85,8 @@ const login = asyncHandler(async (req, res)=>{
 
         const accessToken = await user.generateAccessToken()
         const refreshToken = await user.generateRefreshToken()
+        user.refreshToken = refreshToken
+        user.save({validateBeforeSave: false})
 
         return res
         .status(httpStatusCodes.OK)
@@ -104,7 +106,42 @@ const login = asyncHandler(async (req, res)=>{
 })
 
 const logout = asyncHandler(async (req, res)=>{
-
+    // get the user id from req.user
+    const userId = req.user._id
+    if (!userId){
+        throw new ApiError(httpStatusCodes.BAD_REQUEST, "user id is missing")
+    }
+    // access token is stored in either authorization header or secured cookie
+    // delete cookie from authorization header
+    if (req.Authorization){
+        delete req.headers.Authorization
+    }
+    
+    
+    try {
+        const update = await User.findByIdAndUpdate(
+            userId,
+            {$set: {refreshToken: null}}
+        )
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "Something went wrong while updating"
+            )
+    }
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        {},
+        "user has been logged out successfully"
+    ))
 })
 
 export {

@@ -52,6 +52,9 @@ const userSchema = new mongoose.Schema({
         unique: true,
         trim: true,
         lowercase: true
+    },
+    refreshToken: {
+        type: String
     }
 
 }, {timestamps: true})
