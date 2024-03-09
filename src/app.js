@@ -16,13 +16,13 @@ app.use(cookieParser())
 app.use(cors(corsOptions))
 
 // routes import
-import userRoutes from './routes/user.routes.js'
+import authRouter from './routes/auth.route.js'
 import healthCheckRouter from './routes/healthCheck.route.js'
 import refreshAccessTokenRouter from './routes/refreshAccessToken.route.js'
 
 // routes declaration
 app.use('/api/v1/healthCheck', healthCheckRouter)
-app.use("/api/v1/users", userRoutes)
+app.use("/api/v1/users", authRouter)
 app.use('/api/v1/refreshAccessToken', refreshAccessTokenRouter)
 
 

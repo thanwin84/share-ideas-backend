@@ -5,7 +5,7 @@ import { ApiError } from '../utils/ApiError.js'
 
 function verityJWT(req, res, next){
     
-    // access token is either stored in header or in cookies
+    // access token is  stored either in header or in cookies
     const token = req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', "")
     jwt.verify(
         token,

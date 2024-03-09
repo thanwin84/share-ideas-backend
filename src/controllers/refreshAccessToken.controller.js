@@ -32,6 +32,7 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
             "user id is missing"
             )
     }
+
     const refreshToken = req.cookies?.refreshToken || ""
     if (refreshToken === ""){
         throw new ApiError(
@@ -39,6 +40,7 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
             "refresh token is missing"
             )
     }
+
     const user = await User.findById(userId)
     if (!user){
         throw new ApiError(
@@ -46,6 +48,7 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
              "user does not exist"
             )
     }
+
     const isRefreshTokenValid = user.refreshToken === refreshToken
     if (!isRefreshTokenValid){
         throw new ApiError(
@@ -53,11 +56,14 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
             "User is forbidden"
             )
     }
+
     verifyRefreshToken(refreshToken)
     // refresh token is valid, so generate new access and refresh token
+
     const newAccessToken = user.generateAccessToken()
     const newRefreshToken = user.generateRefreshToken()
-    // update refresh token in db also
+
+    // also update refresh token in db also
     user.refreshToken = newRefreshToken
     await user.save({validateBeforeSave: false})
 
@@ -65,6 +71,7 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
         httpOnly: true,
         secure: true
         }
+        
     return res
     .status(httpStatusCodes.OK)
     .cookie("accessToken", newAccessToken, options)
