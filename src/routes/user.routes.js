@@ -1,22 +1,24 @@
-import { Router } from "express";
 import {
-    register,
-    login,
-    logout
+    updateUserDetaiils,
+    changePassword,
+    changeAvatar,
+    getCurrentUser,
+    getUserDetailsById
 } from '../controllers/user.controller.js'
-import { upload } from "../middlewares/multer.middleware.js";
-import { verityJWT } from "../middlewares/verityJWT.middleware.js";
-
+import {Router} from 'express'
+import { verityJWT } from '../middlewares/verityJWT.middleware.js'
 
 const router = Router()
+router.use(verityJWT)
 
-router.route("/")
-.post(upload.single('avatar'), register)
+router.route('/current-user').get(getCurrentUser)
 
-router.route("/login")
-.post(login)
+router.route('/:userId').get(getUserDetailsById)
 
-router.route('/logout')
-.post(verityJWT, logout)
+router.route('/updateDetails').patch(updateUserDetaiils)
+router.route('/changePassword').patch(changePassword)
+router.route('/changeAvatar').patch(changeAvatar)
 
-export default router
+
+
+export default router;

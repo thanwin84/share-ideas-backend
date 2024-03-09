@@ -19,11 +19,13 @@ app.use(cors(corsOptions))
 import authRouter from './routes/auth.route.js'
 import healthCheckRouter from './routes/healthCheck.route.js'
 import refreshAccessTokenRouter from './routes/refreshAccessToken.route.js'
+import userRouter from './routes/user.routes.js'
 
 // routes declaration
 app.use('/api/v1/healthCheck', healthCheckRouter)
 app.use("/api/v1/users", authRouter)
 app.use('/api/v1/refreshAccessToken', refreshAccessTokenRouter)
+app.use("/api/v1/users", userRouter)
 
 
 // error hanlder middlewares
