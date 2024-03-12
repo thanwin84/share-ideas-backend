@@ -1,6 +1,5 @@
 import Client from 'twilio'
-// import dotenv from 'dotenv'
-// dotenv.config({path: "../../.env"})
+
 
 const acount_sid = process.env.TWILLIO_ACCOUNT_SID
 const auth_token = process.env.TWILLIO_AUTH_TOKEN
@@ -22,7 +21,7 @@ class TwillioService{
             return verification.status
 
         } catch (error) {
-            console.log(error)
+            
             throw error
         }
 

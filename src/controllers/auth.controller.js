@@ -148,11 +148,12 @@ const logout = asyncHandler(async (req, res)=>{
     ))
 })
 
+
 const sendVerificationCode = asyncHandler(async(req, res)=>{
-    //  first check if the user has registered phone number
-    const {via} = req.body
+    
+    const {deliveryMethod} = req.body // user can choose to get verification code via sms or whatsapp
     const userId = req.user._id
-    if (!via){
+    if (!deliveryMethod){
         throw new ApiError(
             httpStatusCodes.BAD_REQUEST,
             "via is missing"
@@ -181,7 +182,7 @@ const sendVerificationCode = asyncHandler(async(req, res)=>{
     try {
         // user has already registed phone number,
         // so we can send verification message
-        const status = await twillioService.sendVerificationToken(phoneNumber, via)
+        const status = await twillioService.sendVerificationToken(phoneNumber, deliveryMethod)
         return res
         .status(httpStatusCodes.OK)
         .json(new ApiResponse(
