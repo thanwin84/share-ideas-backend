@@ -116,6 +116,7 @@ const updateBlog = asyncHandler(async (req, res)=>{
             "user id is missing"
         )
     }
+    
     if (!blogId){
         throw new ApiError(
             httpStatusCodes.BAD_REQUEST,
@@ -124,7 +125,8 @@ const updateBlog = asyncHandler(async (req, res)=>{
     }
     const localFilePath = req?.file?.path
     const update = {...req.body}
-
+    
+    // update cover photo only if user has updated
     if (localFilePath){
         const updatedCoverPhoto = await uploadSingleFile(localFilePath)
         update.coverPhoto = {
@@ -132,6 +134,7 @@ const updateBlog = asyncHandler(async (req, res)=>{
             publicUrl: updatedCoverPhoto.url
         }
     }
+    // check if the blog exist
     const blog = await Blog.findById(blogId)
     if (!blog){
         throw new ApiError(
@@ -148,7 +151,7 @@ const updateBlog = asyncHandler(async (req, res)=>{
             {new: true}
         )
         
-        // delete the cover photo
+        // if user has updated cover photo, delete the old cover photo cloudinary
         if (update.coverPhoto){
             await deleteAsset(blog.coverPhoto.publicId)
         }
@@ -162,7 +165,7 @@ const updateBlog = asyncHandler(async (req, res)=>{
         ))
 
     } catch (error) {
-        console.log(error)
+        
         throw new ApiError(
             httpStatusCodes.INTERNAL_SERVER_ERROR,
             "something went wrong while updating blog"
