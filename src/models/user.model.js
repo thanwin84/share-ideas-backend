@@ -55,6 +55,13 @@ const userSchema = new mongoose.Schema({
     },
     refreshToken: {
         type: String
+    },
+    authentication: {
+        twoStepAuthentication: {
+            type: Boolean,
+            default: false
+        },
+        phoneNumber: String
     }
 
 }, {timestamps: true})

@@ -4,6 +4,7 @@ import {User} from '../models/user.model.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
 import { uploadOnCloudinary } from '../utils/cloudinary.js'
 import {httpStatusCodes} from '../constants/index.js'
+import twillioService from '../thirdParty/twillioService.js'
 
 async function uploadSingleFile(localFilePath){
     const uploadedFile = await uploadOnCloudinary(localFilePath)
@@ -147,8 +148,98 @@ const logout = asyncHandler(async (req, res)=>{
     ))
 })
 
+const sendVerificationCode = asyncHandler(async(req, res)=>{
+    //  first check if the user has registered phone number
+    const {via} = req.body
+    const userId = req.user._id
+    if (!via){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "via is missing"
+        )
+    }
+    if (!userId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user id is missing"
+        )
+    }
+    const user = await User.findById(userId)
+    if (!user){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user does not exist"
+        )
+    }
+    const phoneNumber = user.authentication.phoneNumber
+    if (!phoneNumber){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user has not registered phone number yet"
+            )
+    }
+    try {
+        // user has already registed phone number,
+        // so we can send verification message
+        const status = await twillioService.sendVerificationToken(phoneNumber, via)
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            {},
+            status,
+            `Verication code has been sent to ${phoneNumber}`
+        ))
+
+    } catch (error) {
+        console.log(error)
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "something went wrong while sending the verification code"
+        )
+    }
+})
+
+const checkVerificationCode = asyncHandler(async(req, res)=>{
+    const {code} = req.body
+    const userId = req.user._id
+    if (!code){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "verication code is missing"
+        )
+    }
+    if (!userId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user id is missing"
+        )
+    }
+    const user = await User.findById(userId)
+
+    try {
+        const isCodeValid = await twillioService.verificationCheck(user.authentication.phoneNumber, code)
+        if (isCodeValid === 'approved'){
+            return res
+            .status(httpStatusCodes.OK)
+            .json(new ApiResponse(
+                httpStatusCodes.OK,
+                isCodeValid,
+                "user has been approved successfully"
+            ))
+        } 
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "something went wrong while sending verification code"
+        )
+    }
+})
+
 export {
     register,
     login,
-    logout
+    logout,
+    sendVerificationCode,
+    checkVerificationCode
 }

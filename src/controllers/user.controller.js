@@ -172,10 +172,88 @@ const getUserDetailsById = asyncHandler(async (req, res)=>{
     ))
 })
 
+// for two step authentication
+const addPhoneNumber = asyncHandler(async(req, res)=>{
+    const {phoneNumber} = req.body
+    const userId = req.user._id
+    if (!phoneNumber){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "Phone number is missing"
+        )
+    }
+    if (!userId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user id is missing"
+        )
+    }
+    const user = await User.findById(userId)
+    if (!user){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "User does not exist"
+        )
+    }
+    try {
+        user.authentication.phoneNumber = phoneNumber
+        user.save({validateBeforeSave: false})
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            {},
+            "phone number has been updated"
+        ))
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR, 
+            "something went wrong while updating phone number"
+            )
+    }
+
+})
+
+const toggleTwoStepAuthentication = asyncHandler(async(req, res)=>{
+    const userId = req.user._id
+    if (!userId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user id is missing"
+        )
+    }
+    const user = await User.findById(userId)
+    if (!user){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "User does not exist"
+        )
+    }
+    try {
+        const status = !user.authentication.twoStepAuthentication
+        
+        user.authentication.twoStepAuthentication = status
+        await user.save({validateBeforeSave: false})
+
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            {},
+            `Two step authentication is set to ${status}`
+        ))
+    } catch (error) {
+        
+    }
+
+})
+
 export {
     updateUserDetaiils,
     changePassword,
     changeAvatar,
     getCurrentUser,
-    getUserDetailsById
+    getUserDetailsById,
+    addPhoneNumber,
+    toggleTwoStepAuthentication
 }

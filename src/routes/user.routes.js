@@ -3,7 +3,9 @@ import {
     changePassword,
     changeAvatar,
     getCurrentUser,
-    getUserDetailsById
+    getUserDetailsById,
+    addPhoneNumber,
+    toggleTwoStepAuthentication
 } from '../controllers/user.controller.js'
 import {Router} from 'express'
 import { verityJWT } from '../middlewares/verityJWT.middleware.js'
@@ -16,12 +18,14 @@ router.route('/current-user').get(getCurrentUser)
 
 router.route('/:userId').get(getUserDetailsById)
 
-router.route('/updateDetails').patch(updateUserDetaiils)
-router.route('/changePassword')
+router.route('/update-details').patch(updateUserDetaiils)
+router.route('/change-password')
 .patch(changePassword)
-router.route('/changeAvatar')
+router.route('/change-avatar')
 .patch(upload.single('avatar'),changeAvatar)
 
+router.route('/update-phone-number').patch(addPhoneNumber)
+router.route('/toggle-two-step-authentication').patch(toggleTwoStepAuthentication)
 
 
 export default router;
