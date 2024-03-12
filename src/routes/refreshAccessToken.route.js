@@ -5,6 +5,6 @@ import {Router} from 'express'
 const router = Router()
 
 router.route('/')
-.post(verityJWT, refreshAccessToken)
+.post(refreshAccessToken)
 
 export default router

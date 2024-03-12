@@ -1,6 +1,7 @@
 import {v2 as cloudinary} from 'cloudinary';
+import {ApiError} from './ApiError.js'
 import fs from 'fs'
-
+import {httpStatusCodes} from '../constants/index.js'
           
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
@@ -37,9 +38,16 @@ const deleteAsset = async(publicId)=>{
         console.log(error)
     }
 }
-
+async function uploadSingleFile(localFilePath){
+    const uploadedFile = await uploadOnCloudinary(localFilePath)
+    if (!uploadedFile){
+        throw new ApiError(httpStatusCodes.BAD_REQUEST, "file is missing")
+    }
+    return uploadedFile
+}
 
 export {
     uploadOnCloudinary,
-    deleteAsset
+    deleteAsset,
+    uploadSingleFile
 }
