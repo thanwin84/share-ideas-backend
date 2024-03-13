@@ -16,28 +16,23 @@ import {
 const router = Router()
 
 // *********public route
-router.route("/")
-.get(getAllUserBlogs)
-
-router.route("/:blogId")
-.get(getBlogById)
-
-router.route("users/:userId")
-.get(getBlogsByUserId)
+router.route("/").get(getAllUserBlogs)
+router.route("/blog/:blogId").get(getBlogById)
+router.route("/users/:userId").get(getBlogsByUserId)
 
 //*********protected routes
 router.use(verityJWT)
 
-router.route("/")
-.post(upload.single("coverPhoto"),createBlog)
-.get(getCurrentUserBlogs)
+router.route("/").post(upload.single("coverPhoto"),createBlog)
+
+router.route("/current-user").get(getCurrentUserBlogs)
 
 router.route("/:blogId")
 .delete(deleteBlog)
-.patch(upload.single("coverPhoto"),updateBlog)
+.patch(upload.single("coverPhoto"), updateBlog)
 
-router.route("/toggle-publish/:blogId").patch(togglePublishBlog)
-router.route("/toggle-premium/:blogId").patch(togglePremiumBlog)
+router.route("/:blogId/toggle-publish").patch(togglePublishBlog)
+router.route("/:blogId/toggle-premium").patch(togglePremiumBlog)
 
 
 

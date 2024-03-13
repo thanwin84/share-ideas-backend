@@ -9,6 +9,7 @@ import {
     uploadSingleFile
     } from '../utils/cloudinary.js'
 import {httpStatusCodes} from '../constants/index.js'
+import mongoose from 'mongoose'
 
 
 const createBlog = asyncHandler(async (req, res)=>{
@@ -175,30 +176,232 @@ const updateBlog = asyncHandler(async (req, res)=>{
 })
 
 const togglePublishBlog = asyncHandler(async (req, res)=>{
+    const {blogId} = req.params
+    if (!blogId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "blog id is missing"
+        )
+    }
+    const blog = await Blog.findById(blogId)
+    if (!blog){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "blog does not exit"
+        )
+    }
+    blog.publish = !blog.publish
+    try {
+        await blog.save({validateBeforeSave: false})
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            blog,
+            `Blog's publish has been updated to ${blog.publish}`
+        ))
 
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "something went wrong while updating publish status"
+        )
+    }
 })
 
 const togglePremiumBlog = asyncHandler(async (req, res)=>{
+    const {blogId} = req.params
+    if (!blogId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "blog id is missing"
+        )
+    }
+    const blog = await Blog.findById(blogId)
+    if (!blog){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "blog does not exit"
+        )
+    }
+    blog.premium = !blog.premium
+    try {
+        await blog.save({validateBeforeSave: false})
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            blog,
+            `Blog's premium has been updated to ${blog.premium}`
+        ))
 
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "something went wrong while updating premium status"
+        )
+    }
 })
 
 const getCurrentUserBlogs = asyncHandler(async (req, res)=>{
+    
+    const userId = req.user._id
+    const {limit = 10, page = 1, ...query} = req.query
+    const skips = (Number(page) - 1) * Number(limit)
+    
+    if (!userId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user id is missing"
+        )
+    }
+    const user = await User.findById(userId)
+    if (!user){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user does not exist"
+        )
+    }
+    const aggregationPipeline = [
+        {
+            $match: {owner: new mongoose.Types.ObjectId(userId),...query}
+        },
+        {
+            $skip: Number(skips)
+        },
+        {
+            $limit: Number(limit)
+        }
+    ]
+    try {
+        const blogs = await Blog.aggregate(aggregationPipeline)
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            blogs,
+            "Current User's blogs have fetched succesffully"
+        ))
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.OK,
+            "something went wrong while fetching blogs"
+            )
+    }
+
 
 })
 
 const getBlogById = asyncHandler(async (req, res)=>{
-
+    const {blogId} = req.params
+    if (!blogId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "blog id is missing"
+        )
+    }
+    
+    try {
+        const blog = await Blog.findById(blogId)
+        if (!blog){
+            throw new ApiError(
+                httpStatusCodes.BAD_REQUEST,
+                "blog does not exist"
+            )
+        }
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            blog,
+            "Blog has been fetched by blog id successfully"
+        ))
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "something went wrong while fetching blog by blog id"
+        )
+    }
 })
 
 const getBlogsByUserId = asyncHandler(async (req, res)=>{
-
+    
+    const {userId} = req.params
+    const {limit=10, page = 1} = req.query
+    const skips = (Number(page) - 1) * Number(limit)
+    if (!userId){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user id is missing"
+        )
+    }
+    const aggregationPipeline = [
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $skip: Number(skips)
+        },
+        {
+            $limit: Number(limit)
+        }
+    ]
+    try {
+        const blogs = await Blog.aggregate(aggregationPipeline)
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            blogs,
+            `Blogs of user id ${userId} have been fetched successfully`
+        ))
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "something went wrong while fetching blogs"
+        )
+    }
+    
 })
+
 
 const getAllUserBlogs = asyncHandler(async (req, res)=>{
+    const {limit = 10, page = 1} = req.query
+    const skips = (Number(page) - 1) * Number(limit)
+   
+    const aggregationPipeline = [
+        {
+            $skip: skips
+        },
+        {
+            $limit: Number(limit)
+        }
+    ]
+    try {
+        const blogs = await Blog.aggregate(aggregationPipeline)
+        
+        return res
+        .status(httpStatusCodes.OK)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            blogs,
+            `All User's blogs have been fetched successfully`
+        ))
+
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "Somethign went wrong while fetching all blogs"
+        )
+    }
 
 })
 
-// Todo: under every blog post should some related blog post
+
+
+
 
 export {
     createBlog,
