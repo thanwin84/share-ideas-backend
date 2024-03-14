@@ -20,7 +20,7 @@ const blogSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "User"
     },
-    tags: [String],
+    tags: [{type: String, lowercase: true}],
     publish: {
         type: Boolean,
         default: true

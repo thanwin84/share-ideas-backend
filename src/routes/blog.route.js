@@ -9,23 +9,22 @@ import {
     togglePremiumBlog,
     getCurrentUserBlogs,
     getBlogById,
-    getBlogsByUserId,
-    getAllUserBlogs
+    getBlogs
 } from '../controllers/blog.controller.js'
 
 const router = Router()
 
 // *********public route
-router.route("/").get(getAllUserBlogs)
-router.route("/blog/:blogId").get(getBlogById)
-router.route("/users/:userId").get(getBlogsByUserId)
+router.route("/").get(getBlogs)
+router.route("/:blogId").get(getBlogById)
+
 
 //*********protected routes
 router.use(verityJWT)
 
 router.route("/").post(upload.single("coverPhoto"),createBlog)
 
-router.route("/current-user").get(getCurrentUserBlogs)
+router.route("/users/current-user").get(getCurrentUserBlogs)
 
 router.route("/:blogId")
 .delete(deleteBlog)

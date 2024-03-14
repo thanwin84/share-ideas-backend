@@ -10,6 +10,7 @@ import {
     } from '../utils/cloudinary.js'
 import {httpStatusCodes} from '../constants/index.js'
 import mongoose from 'mongoose'
+import TaskrouterBase from 'twilio/lib/rest/TaskrouterBase.js'
 
 
 const createBlog = asyncHandler(async (req, res)=>{
@@ -324,54 +325,64 @@ const getBlogById = asyncHandler(async (req, res)=>{
     }
 })
 
-const getBlogsByUserId = asyncHandler(async (req, res)=>{
-    
-    const {userId} = req.params
-    const {limit=10, page = 1} = req.query
-    const skips = (Number(page) - 1) * Number(limit)
-    if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+
+function handleRange(min, max, query, field){
+    if (max && min){
+        query[field] = {$gte: parseInt(min), $lte: parseInt(max)}
+    }else if (max){
+        query[field] = {$gte: parseInt(max)}
     }
-    const aggregationPipeline = [
-        {
-            $match: {
-                owner: new mongoose.Types.ObjectId(userId)
-            }
-        },
-        {
-            $skip: Number(skips)
-        },
-        {
-            $limit: Number(limit)
-        }
-    ]
-    try {
-        const blogs = await Blog.aggregate(aggregationPipeline)
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            blogs,
-            `Blogs of user id ${userId} have been fetched successfully`
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while fetching blogs"
-        )
+    else if (min){
+        query[field] = {$lte: parseInt(min)}
     }
-    
-})
+}
 
 
-const getAllUserBlogs = asyncHandler(async (req, res)=>{
-    const {limit = 10, page = 1} = req.query
+const getBlogs = asyncHandler(async (req, res)=>{
+    const {
+        limit = 10, 
+        page = 1, 
+        featured, 
+        premium, 
+        owner, 
+        maxReads, 
+        minReads,
+        title,
+        maxLikes,
+        minLikes,
+        tags,
+        sortBy
+    } = req.query
     const skips = (Number(page) - 1) * Number(limit)
-   
+    
+    const query = {}
+    
+    if (featured){
+        query.featured = featured === "true"? true: false
+    }
+    if (premium){
+        query.premium = premium === "true"? true: false
+    }
+    if (owner){
+        query.owner = new mongoose.Types.ObjectId(owner)
+    }
+    if (title){
+        query.title = {$regex: title, $options: 'i'}
+    }
+    handleRange(minReads, maxReads, query, "reads")
+    handleRange(minLikes, maxLikes, query, "likes")
+    
+    if (tags && Array.isArray(tags)){
+       let values = tags.map(tag => tag.toLowerCase()) 
+       query.tags = {$all: values}
+    }
+    const [sortField, by] = sortBy.split(":")
+    
+
     const aggregationPipeline = [
+        {
+            $match: {...query}
+        },
         {
             $skip: skips
         },
@@ -379,6 +390,15 @@ const getAllUserBlogs = asyncHandler(async (req, res)=>{
             $limit: Number(limit)
         }
     ]
+    if (sortField){
+        aggregationPipeline.push(
+            {
+                $sort: {[sortField]: by === 'descending'? -1: 1}
+            }
+        )
+    }
+    
+
     try {
         const blogs = await Blog.aggregate(aggregationPipeline)
         
@@ -400,7 +420,7 @@ const getAllUserBlogs = asyncHandler(async (req, res)=>{
 })
 
 
-
+// filter by user, filter by tags, filter by title 
 
 
 export {
@@ -411,8 +431,7 @@ export {
     togglePremiumBlog,
     getCurrentUserBlogs,
     getBlogById,
-    getBlogsByUserId,
-    getAllUserBlogs
+    getBlogs
 }
 
 
