@@ -3,14 +3,13 @@ import {ApiError} from '../utils/ApiError.js'
 import {Blog} from '../models/blog.model.js'
 import { User } from '../models/user.model.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
-import {
-    uploadOnCloudinary, 
+import { 
     deleteAsset,
     uploadSingleFile
     } from '../utils/cloudinary.js'
 import {httpStatusCodes} from '../constants/index.js'
 import mongoose from 'mongoose'
-import TaskrouterBase from 'twilio/lib/rest/TaskrouterBase.js'
+
 
 
 const createBlog = asyncHandler(async (req, res)=>{
@@ -419,9 +418,59 @@ const getBlogs = asyncHandler(async (req, res)=>{
 
 })
 
+const getPersonalizedBlogs = asyncHandler(async (req, res)=>{
+    // only fetch blogs based on user's interest tags
+    const userId = req.user._id
+    const {limit = 10, page = 1} = req.query
+    const skips = (Number(page) - 1) * Number(limit)
 
-// filter by user, filter by tags, filter by title 
+    if (!userId){
+        throw new ApiError(
+            httpStatusCodes.OK,
+            "user id is missing"
+        )
+    }
+    const user = await User.findById(userId)
+    if (!user){
+        throw new ApiError(
+            httpStatusCodes.BAD_REQUEST,
+            "user does not exit"
+        )
+    }
+    const tags = user.interests
 
+    const aggregationPipeline = [
+        {
+            $match: {
+                tags: {$in: tags}
+            }
+        },
+        {
+            $skip: skips
+        },
+        {
+            $limit: Number(limit)
+        }
+    ]
+    
+    try {
+        const result = await Blog.aggregate(aggregationPipeline)
+
+        return res
+        .status(200)
+        .json(new ApiResponse(
+            httpStatusCodes.OK,
+            result,
+            `User's personalized blogs have been fetched successfully`
+        ))
+    } catch (error) {
+        throw new ApiError(
+            httpStatusCodes.INTERNAL_SERVER_ERROR,
+            "something went wrong while fetching blogs"
+        )
+    }
+
+})
 
 export {
     createBlog,
@@ -431,7 +480,8 @@ export {
     togglePremiumBlog,
     getCurrentUserBlogs,
     getBlogById,
-    getBlogs
+    getBlogs,
+    getPersonalizedBlogs
 }
 
 

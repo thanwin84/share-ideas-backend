@@ -9,7 +9,8 @@ import {
     togglePremiumBlog,
     getCurrentUserBlogs,
     getBlogById,
-    getBlogs
+    getBlogs,
+    getPersonalizedBlogs
 } from '../controllers/blog.controller.js'
 
 const router = Router()
@@ -21,6 +22,8 @@ router.route("/:blogId").get(getBlogById)
 
 //*********protected routes
 router.use(verityJWT)
+
+router.route('/blog/personalized-blogs/').get(getPersonalizedBlogs)
 
 router.route("/").post(upload.single("coverPhoto"),createBlog)
 
