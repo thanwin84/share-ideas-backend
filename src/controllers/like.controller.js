@@ -5,7 +5,13 @@ import {httpStatusCodes} from '../constants/index.js'
 import {Like} from '../models/like.model.js'
 
 
+const toggleCommentLike = asyncHandler(async (req, res)=>{
 
+})
+
+const toggleBlogLike = asyncHandler(async (req, res)=>{
+
+})
 
 
 export {

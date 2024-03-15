@@ -34,8 +34,18 @@ const blogSchema = new Schema({
         default: false
     },
     coverPhoto: coverPhotoSchema,
-    likes: Number, // total likes
-    reads: Number, // how many people has read
+    likes: {
+        type: Number,
+        default: 0
+    },
+    reads: {
+        type: Number,
+        default: 0
+    },
+    comments: {
+        type: Number,
+        default: 0
+    }
 }, 
 {timestamps: true}
 )
