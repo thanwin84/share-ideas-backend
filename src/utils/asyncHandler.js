@@ -4,12 +4,7 @@ function asyncHandler (controller){
         try {
             await controller(req, res)
         } catch (error) {
-            res.status(error.code || 500).json(
-                {
-                    success: false,
-                    message: error.message
-                }
-            )
+            next(error)
         }
     }
 }

@@ -1,20 +1,16 @@
 import {asyncHandler} from '../utils/asyncHandler.js'
-import {ApiError} from '../utils/ApiError.js'
+import {
+    Api400Error,
+    Api404Error
+} from '../utils/ApiError.js'
 import {User} from '../models/user.model.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
 import {
      uploadOnCloudinary, 
-     deleteAsset 
+     deleteAsset,
+     uploadSingleFile
     } from '../utils/cloudinary.js'
 import {httpStatusCodes} from '../constants/index.js'
-
-async function uploadSingleFile(localFilePath){
-    const uploadedFile = await uploadOnCloudinary(localFilePath)
-    if (!uploadedFile){
-        throw new ApiError(httpStatusCodes.BAD_REQUEST, "file is missing")
-    }
-    return uploadedFile
-}
 
 
 const updateUserDetaiils = asyncHandler(async(req, res)=>{
@@ -22,16 +18,10 @@ const updateUserDetaiils = asyncHandler(async(req, res)=>{
     const userId = req.user._id
     const {username, firstName, lastName, email} = req.body
     if (!username && !firstName && !lastName && !email){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "At least one field is required"
-        )
+        throw new Api400Error("At least one feild is required")
     }
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("user id is missing")
     }
     const user = await User.findOneAndUpdate(
         {_id: userId},
@@ -51,63 +41,45 @@ const updateUserDetaiils = asyncHandler(async(req, res)=>{
 const changePassword = asyncHandler(async (req, res)=>{
     const userId = req.user._id
     const {oldPassword, newPassword} = req.body
-    if (!oldPassword && !newPassword){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "Both oldPassword and newPassword required"
-            )
+    if (!oldPassword || !newPassword){
+        throw new Api400Error("Both old password and new password is required")
     }
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user does not exist"
-        )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
-    try {
-        // check if user input password is correct
-        const isOldPasswordCorrect = user.isPasswordCorrect(oldPassword)
-        if (!isOldPasswordCorrect){
-            throw new ApiError(
-                httpStatusCodes.BAD_REQUEST,
-                "Password is incorrect"
-            )
-        }
-        user.password = newPassword
-        await user.save()
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            {},
-            "password is changed successfully"
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST, 
-            "something went wrong while updating password"
-        )
+    // check if user input password is correct
+    const isOldPasswordCorrect = user.isPasswordCorrect(oldPassword)
+    if (!isOldPasswordCorrect){
+        throw new Api400Error("Password is not correct")
     }
+    user.password = newPassword
+    await user.save()
+    
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        {},
+        "password is changed successfully"
+    ))
 })
 
 const changeAvatar = asyncHandler(async (req, res)=>{
     // change profile pic
     const userId = req.user._id
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("User id is missing")
     }
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user does not exists with this id"
-        )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
     
     const localFilePath = req?.file?.path
+    if (!localFilePath){
+        throw new Api400Error("Local file is missing")
+    }
     
     // upload on cloudinary
     const uploadedFile = await uploadSingleFile(localFilePath)
@@ -133,14 +105,11 @@ const changeAvatar = asyncHandler(async (req, res)=>{
 const getCurrentUser = asyncHandler(async (req, res)=>{
     const userId = req.user._id
     if (!userId){
-        throw new ApiError(httpStatusCodes.BAD_REQUEST, "user id is missing")
+        throw new Api400Error("User id is missing")
     }
     const user = await User.findById(userId).select('-password -refreshToken')
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user does not exists"
-        )
+        throw new Api400Error(`User with id ${userId} is not found`)
     }
     return res
     .status(httpStatusCodes.OK)
@@ -154,14 +123,11 @@ const getCurrentUser = asyncHandler(async (req, res)=>{
 const getUserDetailsById = asyncHandler(async (req, res)=>{
     const {userId} = req.params
     if (!userId){
-        throw new ApiError(httpStatusCodes.BAD_REQUEST, "user id is missing")
+        throw new Api400Error("User id is missing")
     }
     const user = await User.findById(userId).select('-password -refreshToken')
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user does not exists"
-        )
+        throw new Api400Error(`User with id ${userId} is not found`)
     }
     return res
     .status(httpStatusCodes.OK)
@@ -177,74 +143,49 @@ const addPhoneNumber = asyncHandler(async(req, res)=>{
     const {phoneNumber} = req.body
     const userId = req.user._id
     if (!phoneNumber){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "Phone number is missing"
-        )
+        throw new Api400Error("Phone number is missing")
     }
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("User id is missing")
     }
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "User does not exist"
-        )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
-    try {
-        user.authentication.phoneNumber = phoneNumber
-        user.save({validateBeforeSave: false})
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            {},
-            "phone number has been updated"
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR, 
-            "something went wrong while updating phone number"
-            )
-    }
+    user.authentication.phoneNumber = phoneNumber
+    user.save({validateBeforeSave: false})
+
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        {},
+        "phone number has been updated"
+    ))
 
 })
 
 const toggleTwoStepAuthentication = asyncHandler(async(req, res)=>{
     const userId = req.user._id
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("User id is missing")
     }
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "User does not exist"
-        )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
-    try {
-        const status = !user.authentication.twoStepAuthentication
+    const status = !user.authentication.twoStepAuthentication
         
-        user.authentication.twoStepAuthentication = status
-        await user.save({validateBeforeSave: false})
+    user.authentication.twoStepAuthentication = status
+    await user.save({validateBeforeSave: false})
 
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            {},
-            `Two step authentication is set to ${status}`
-        ))
-    } catch (error) {
-        
-    }
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        {},
+        `Two step authentication is set to ${status}`
+    ))
 
 })
 

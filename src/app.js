@@ -1,5 +1,6 @@
 import express from "express";
 import notFoundMiddleware from "./middlewares/notFound.middleware.js";
+import {errorHandler} from './middlewares/errorHandler.middleware.js'
 import cookieParser from "cookie-parser";
 import cors from 'cors'
 import {corsOptions} from './config/corsOptions.js'
@@ -37,5 +38,6 @@ app.use("/api/v1/likes", likeRouter)
 
 // error hanlder middlewares
 app.use(notFoundMiddleware)
+app.use(errorHandler)
 
 export default app

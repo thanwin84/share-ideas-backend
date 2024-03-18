@@ -1,5 +1,8 @@
 import {asyncHandler} from '../utils/asyncHandler.js'
-import {ApiError} from '../utils/ApiError.js'
+import {
+    Api400Error,
+    Api404Error
+} from '../utils/ApiError.js'
 import {Blog} from '../models/blog.model.js'
 import { User } from '../models/user.model.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
@@ -16,55 +19,38 @@ const createBlog = asyncHandler(async (req, res)=>{
     const {title, content, tags, premium} = req.body
     const userId = req.user._id
 
-    if (!title && !content){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "title and content both are required"
-        )
+    if (!title || !content){
+        throw new Api400Error("Both title and content is required")
     }
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("User id is missing")
     }
     const user = await User.findById(userId)
    
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            `User does not exist with user id ${userId}`
-            )
+        throw new Api404Error(`User with id ${userId} is missing`)
     }
     const localFilePath = req?.file?.path
     const uploadedCoverPhoto = await uploadSingleFile(localFilePath)
-    try {
-        const newBlog = await Blog.create({
-            title,
-            content,
-            owner: userId,
-            tags,
-            premium: premium ? premium: false,
-            coverPhoto: {
-                publicId: uploadedCoverPhoto.public_id,
-                publicUrl: uploadedCoverPhoto.url
-            }
-            
-        })
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            newBlog,
-            "blog has been created successfully"
-        ))
-
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-        "something went wrong while creating new blog"
-        )
-    }
+    const newBlog = await Blog.create({
+        title,
+        content,
+        owner: userId,
+        tags,
+        premium: premium ? premium: false,
+        coverPhoto: {
+            publicId: uploadedCoverPhoto.public_id,
+            publicUrl: uploadedCoverPhoto.url
+        }
+        
+    })
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        newBlog,
+        "blog has been created successfully"
+    ))
 })
 
 const deleteBlog = asyncHandler(async (req, res)=>{
@@ -72,39 +58,22 @@ const deleteBlog = asyncHandler(async (req, res)=>{
     const {blogId} = req.params
 
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("user id is missing")
     }
     if (!blogId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog id is missing"
-        )
+        throw new Api400Error("blog id is missing")
     }
-    try {
-        const blog = await Blog.findByIdAndDelete(blogId)
-        if (!blog){
-            throw new ApiError(
-                httpStatusCodes.BAD_REQUEST,
-                "blog does not exists"
-            )
-        }
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            {},
-            "blog has been deleted successfully"
-        ))
-
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while deleting blog"
-        )
+    const blog = await Blog.findByIdAndDelete(blogId)
+    if (!blog){
+        throw new Api404Error(`Blog with id ${blogId}`)
     }
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        {},
+        "blog has been deleted successfully"
+    ))
 
 })
 
@@ -112,17 +81,11 @@ const updateBlog = asyncHandler(async (req, res)=>{
     const userId = req.user._id
     const {blogId} = req.params
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("user id is missing")
     }
     
     if (!blogId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog id is missing"
-        )
+        throw new Api400Error("blog id is missing")
     }
     const localFilePath = req?.file?.path
     const update = {...req.body}
@@ -138,109 +101,68 @@ const updateBlog = asyncHandler(async (req, res)=>{
     // check if the blog exist
     const blog = await Blog.findById(blogId)
     if (!blog){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog does not exist"
-        )
+        throw new Api404Error(`Blog with id ${blogId}`)
     }
     
-    try {
-        
-        const updatedBlog = await Blog.findByIdAndUpdate(
-            blogId,
-            {$set: update},
-            {new: true}
-        )
-        
-        // if user has updated cover photo, delete the old cover photo cloudinary
-        if (update.coverPhoto){
-            await deleteAsset(blog.coverPhoto.publicId)
-        }
-
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            updatedBlog,
-            "blog has updated successfully"
-        ))
-
-    } catch (error) {
-        
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while updating blog"
-        )
+    const updatedBlog = await Blog.findByIdAndUpdate(
+        blogId,
+        {$set: update},
+        {new: true}
+    )
+    
+    // if user has updated cover photo, delete the old cover photo cloudinary
+    if (update.coverPhoto){
+        await deleteAsset(blog.coverPhoto.publicId)
     }
+
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        updatedBlog,
+        "blog has updated successfully"
+    ))
     
 })
 
 const togglePublishBlog = asyncHandler(async (req, res)=>{
     const {blogId} = req.params
     if (!blogId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog id is missing"
-        )
+        throw new Api404Error(`Blog with id ${blogId}`)
     }
     const blog = await Blog.findById(blogId)
     if (!blog){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog does not exit"
-        )
+        throw new Api404Error(`Blog with id ${blogId}`)
     }
     blog.publish = !blog.publish
-    try {
-        await blog.save({validateBeforeSave: false})
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            blog,
-            `Blog's publish has been updated to ${blog.publish}`
-        ))
-
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while updating publish status"
-        )
-    }
+    await blog.save({validateBeforeSave: false})
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        blog,
+        `Blog's publish has been updated to ${blog.publish}`
+    ))
 })
 
 const togglePremiumBlog = asyncHandler(async (req, res)=>{
     const {blogId} = req.params
     if (!blogId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog id is missing"
-        )
+        throw new Api404Error(`Blog with id ${blogId}`)
     }
     const blog = await Blog.findById(blogId)
     if (!blog){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog does not exit"
-        )
+        throw new Api404Error(`Blog with id ${blogId}`)
     }
     blog.premium = !blog.premium
-    try {
-        await blog.save({validateBeforeSave: false})
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            blog,
-            `Blog's premium has been updated to ${blog.premium}`
-        ))
-
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while updating premium status"
-        )
-    }
+    await blog.save({validateBeforeSave: false})
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        blog,
+        `Blog's premium has been updated to ${blog.premium}`
+    ))
 })
 
 const getCurrentUserBlogs = asyncHandler(async (req, res)=>{
@@ -250,17 +172,11 @@ const getCurrentUserBlogs = asyncHandler(async (req, res)=>{
     const skips = (Number(page) - 1) * Number(limit)
     
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("user id is missing")
     }
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user does not exist"
-        )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
     const aggregationPipeline = [
         {
@@ -273,21 +189,14 @@ const getCurrentUserBlogs = asyncHandler(async (req, res)=>{
             $limit: Number(limit)
         }
     ]
-    try {
-        const blogs = await Blog.aggregate(aggregationPipeline)
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            blogs,
-            "Current User's blogs have fetched succesffully"
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.OK,
-            "something went wrong while fetching blogs"
-            )
-    }
+    const blogs = await Blog.aggregate(aggregationPipeline)
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        blogs,
+        "Current User's blogs have fetched succesffully"
+    ))
 
 
 })
@@ -295,33 +204,20 @@ const getCurrentUserBlogs = asyncHandler(async (req, res)=>{
 const getBlogById = asyncHandler(async (req, res)=>{
     const {blogId} = req.params
     if (!blogId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blog id is missing"
-        )
+        throw new Api400Error("Blog id is missing")
     }
-    
-    try {
-        const blog = await Blog.findById(blogId)
-        if (!blog){
-            throw new ApiError(
-                httpStatusCodes.BAD_REQUEST,
-                "blog does not exist"
-            )
-        }
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            blog,
-            "Blog has been fetched by blog id successfully"
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while fetching blog by blog id"
-        )
+
+    const blog = await Blog.findById(blogId)
+    if (!blog){
+        throw new Api404Error(`Blog with id ${id} not found`)
     }
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        blog,
+        "Blog has been fetched by blog id successfully"
+    ))
 })
 
 
@@ -397,24 +293,15 @@ const getBlogs = asyncHandler(async (req, res)=>{
         )
     }
     
-
-    try {
-        const blogs = await Blog.aggregate(aggregationPipeline)
+    const blogs = await Blog.aggregate(aggregationPipeline)
         
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            blogs,
-            `All User's blogs have been fetched successfully`
-        ))
-
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "Somethign went wrong while fetching all blogs"
-        )
-    }
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        blogs,
+        `All User's blogs have been fetched successfully`
+    ))
 
 })
 
@@ -425,17 +312,11 @@ const getPersonalizedBlogs = asyncHandler(async (req, res)=>{
     const skips = (Number(page) - 1) * Number(limit)
 
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.OK,
-            "user id is missing"
-        )
+        throw new Api400Error("user id is missing")
     }
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user does not exit"
-        )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
     const tags = user.interests
 
@@ -453,23 +334,15 @@ const getPersonalizedBlogs = asyncHandler(async (req, res)=>{
         }
     ]
     
-    try {
-        const result = await Blog.aggregate(aggregationPipeline)
+    const result = await Blog.aggregate(aggregationPipeline)
 
-        return res
-        .status(200)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            result,
-            `User's personalized blogs have been fetched successfully`
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while fetching blogs"
-        )
-    }
-
+    return res
+    .status(200)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        result,
+        `User's personalized blogs have been fetched successfully`
+    ))
 })
 
 export {

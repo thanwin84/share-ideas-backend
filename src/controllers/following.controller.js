@@ -1,5 +1,8 @@
 import {asyncHandler} from '../utils/asyncHandler.js'
-import {ApiError} from '../utils/ApiError.js'
+import {
+  Api400Error,
+  Api404Error
+} from '../utils/ApiError.js'
 import { User } from '../models/user.model.js'
 import { Following } from '../models/following.model.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
@@ -13,59 +16,40 @@ const toggleFollowing = asyncHandler(async (req, res)=>{
     const userId = req.user._id
 
     if (!bloggerId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "Blogger id is missing "
-        )
+        throw new Api400Error("blogger id is missing")
     }
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "User id is missing "
-        )
+      throw new Api400Error("User id is missing")
     }
     
     const isAlreadyFollowing = await Following.findOne({
         follower: userId, 
         followedBlogger: bloggerId}
         )
+
     if (!isAlreadyFollowing){
-        try {
-            const following = await Following.create({
-                follower: userId,
-                followedBlogger: bloggerId
-            })
-            
-            return res
-            .status(httpStatusCodes.OK)
-            .json(new ApiResponse(
-                httpStatusCodes.OK,
-                following,
-                `User has followed succesffully`
-            ))
-        } catch (error) {
-            throw new ApiError(
-                httpStatusCodes.INTERNAL_SERVER_ERROR,
-                "something went wrong while following blogger"
-            )
-        }
+      const following = await Following.create({
+        follower: userId,
+        followedBlogger: bloggerId
+      })
+    
+      return res
+      .status(httpStatusCodes.OK)
+      .json(new ApiResponse(
+          httpStatusCodes.OK,
+          following,
+          `User has followed succesffully`
+      ))
     }
     else {
-        try {
-            await Following.deleteOne({followedBlogger: bloggerId, follower: userId})
+      await Following.deleteOne({followedBlogger: bloggerId, follower: userId})
 
-            return res
-            .status(httpStatusCodes.OK)
-            .json(new ApiResponse(
-                httpStatusCodes.OK,
-                "user has unfollowed successfully"
-            ))
-        } catch (error) {
-            throw new ApiError(
-                httpStatusCodes.INTERNAL_SERVER_ERROR,
-                "something went wrong while unfollowing"
-            )
-        }
+      return res
+      .status(httpStatusCodes.OK)
+      .json(new ApiResponse(
+            httpStatusCodes.OK,
+            "user has unfollowed successfully"
+        ))
     }
 })
 
@@ -76,10 +60,7 @@ const getFollowers = asyncHandler(async (req, res)=>{
     const {bloggerId}= req.params
    
     if (!bloggerId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "blogger id is missing "
-        )
+        throw new Api400Error("Bloger id is missing")
     }
     const aggregationPipeline = [
         {
@@ -128,23 +109,15 @@ const getFollowers = asyncHandler(async (req, res)=>{
         }
       ]
    
-    try {
-        const result = await Following.aggregate(aggregationPipeline)
-        
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            result,
-            "List of followers have been has been fetched succesfully"
-        ))
-    } catch (error) {
-        console.log(error)
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "something went wrong while fetching the list of followers"
-        )
-    }
+    const result = await Following.aggregate(aggregationPipeline)
+      
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        result,
+        "List of followers have been has been fetched succesfully"
+    ))
 })
 
 const getFollwings = asyncHandler(async (req, res)=>{
@@ -154,17 +127,11 @@ const getFollwings = asyncHandler(async (req, res)=>{
     const skips = (Number(page) - 1) * Number(limit)
 
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("User id is missing")
     } 
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.OK,
-            "use does not exist"
-        )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
     const aggregationPipeline = [
         {
@@ -213,57 +180,42 @@ const getFollwings = asyncHandler(async (req, res)=>{
         }
       ]
    
-    try {
-        const followings = await Following.aggregate(aggregationPipeline)
+    const followings = await Following.aggregate(aggregationPipeline)
 
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            followings,
-            "List of followings has been fetched successfully"
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.INTERNAL_SERVER_ERROR,
-            "Something went wrong while fetching following list"
-        )
-    }
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        followings,
+        "List of followings has been fetched successfully"
+    ))
 
 })
 
 const getFollowersAndFollowingCount = asyncHandler(async (req, res)=>{
     const {userId} = req.params
     if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-        )
+        throw new Api400Error("user id is missing")
     }
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user does not exist"
-        )
+        throw new Api400Error(`User with id ${userId} is not found`)
     }
-    try {
-        const followersCount = await Following.find({followedBlogger: userId}).countDocuments()
-        const followingCount = await Following.find({follower: userId}).countDocuments()
-        
-        return res
-        .status(httpStatusCodes.OK)
-        .json(new ApiResponse(
-            httpStatusCodes.OK,
-            {followersCount, followingCount},
-            "Followers  and following count has been fetched successsfully"
-        ))
-    } catch (error) {
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "Something went wrong while fetching"
-        )
-    }
+    
+    const [followersCount, followingCount] = await Promise.all(
+      [
+        Following.find({followedBlogger: userId}).countDocuments(),
+        Following.find({follower: userId}).countDocuments()
+      ]
+    )
+    
+    return res
+    .status(httpStatusCodes.OK)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        {followersCount, followingCount},
+        "Followers  and following count has been fetched successsfully"
+    ))
 })
 export {
     toggleFollowing,

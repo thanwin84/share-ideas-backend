@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import {httpStatusCodes} from '../constants/index.js'
-import { ApiError } from '../utils/ApiError.js'
+import { Api401Error } from '../utils/ApiError.js'
 
 
 function verityJWT(req, res, next){
@@ -12,10 +12,7 @@ function verityJWT(req, res, next){
         process.env.ACCESS_TOKEN_SECRET,
         (error, decoded)=>{
             if (error){
-                throw new ApiError(
-                    httpStatusCodes.UNAUTHORIZED,
-                    "unauthorized request"
-                    )
+                throw new Api401Error("User is not authorized")
             } else {
                 // console.log(decoded)
                 req.user = decoded

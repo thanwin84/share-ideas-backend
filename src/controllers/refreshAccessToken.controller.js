@@ -1,64 +1,46 @@
 import { httpStatusCodes } from "../constants/index.js";
 import { User } from "../models/user.model.js";
-import { ApiError } from "../utils/ApiError.js";
+import { Api403Error, Api400Error, Api404Error, Api401Error } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from 'jsonwebtoken'
 
 
 function verifyRefreshToken(refreshToken){
-    
+    const result = {}
     jwt.verify(
         refreshToken,
         process.env.REFRESH_TOKEN_SECRET,
-        (error, _)=>{
+        (error, decodedToken)=>{
             if (error){
-                throw new ApiError(
-                    httpStatusCodes.FORBIDDEN, 
-                    "refresh token is expired or invalid"
-                    )
+                throw new Api401Error("refresh token is expired or invalid")
             } else {
-                return true
+                result.id = decodedToken._id,
+                result.verified = true
             }
         }
     )
+    return result
 }
 const refreshAccessToken = asyncHandler(async(req, res)=>{
-    // get refresh token from user
-    const userId = req.user._id
-    if (!userId){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-            "user id is missing"
-            )
-    }
+    
 
     const refreshToken = req.cookies?.refreshToken || ""
     if (refreshToken === ""){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST, 
-            "refresh token is missing"
-            )
+        throw new Api400Error("refresh token is missing")
     }
-
+    const { id, verified} = verifyRefreshToken(refreshToken)
+    
+    const userId = id
     const user = await User.findById(userId)
     if (!user){
-        throw new ApiError(
-            httpStatusCodes.BAD_REQUEST,
-             "user does not exist"
-            )
+        throw new Api404Error(`User with id ${userId} is not found`)
     }
 
     const isRefreshTokenValid = user.refreshToken === refreshToken
     if (!isRefreshTokenValid){
-        throw new ApiError(
-            httpStatusCodes.FORBIDDEN, 
-            "User is forbidden"
-            )
+        throw new Api403Error("user is forbidden")
     }
-
-    verifyRefreshToken(refreshToken)
-    // refresh token is valid, so generate new access and refresh token
 
     const newAccessToken = user.generateAccessToken()
     const newRefreshToken = user.generateRefreshToken()
