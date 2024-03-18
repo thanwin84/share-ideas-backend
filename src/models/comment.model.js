@@ -13,6 +13,10 @@ const commentSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "Blog"
         },
+        likes: {
+            type: Number,
+            default: 0
+        }
         
     },
     {
