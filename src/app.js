@@ -25,6 +25,7 @@ import blogsRouter from './routes/blog.route.js'
 import followingRouter from "./routes/following.route.js"
 import commentRouter from './routes/comment.route.js'
 import likeRouter from "./routes/like.route.js"
+import dashboardRouter from "./routes/dashboard.route.js"
 
 // routes declaration
 app.use('/api/v1/healthCheck', healthCheckRouter)
@@ -35,6 +36,7 @@ app.use("/api/v1/blogs", blogsRouter)
 app.use("/api/v1/followings", followingRouter)
 app.use("/api/v1/comments", commentRouter)
 app.use("/api/v1/likes", likeRouter)
+app.use("/api/v1/dashboard", dashboardRouter)
 
 // error hanlder middlewares
 app.use(notFoundMiddleware)
