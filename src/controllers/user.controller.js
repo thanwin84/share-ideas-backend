@@ -4,9 +4,10 @@ import {
     Api404Error
 } from '../utils/ApiError.js'
 import {User} from '../models/user.model.js'
+import {Blog} from "../models/blog.model.js"
+import { Following } from '../models/following.model.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
-import {
-     uploadOnCloudinary, 
+import { 
      deleteAsset,
      uploadSingleFile
     } from '../utils/cloudinary.js'
@@ -189,6 +190,41 @@ const toggleTwoStepAuthentication = asyncHandler(async(req, res)=>{
 
 })
 
+
+const deleteAccount = asyncHandler(async (req, res)=>{
+    const userId = req.user._id
+
+    if (!userId){
+        throw new Api400Error(`User id is missing`)
+    }
+    const user = await User.findById(userId)
+
+    if (!user){
+        throw new Api404Error(`User with id ${userId} is not found`)
+    }
+    // delete all the blogs
+    await Blog.deleteMany({owner: userId})
+    await Following.deleteMany({followedBlogger: userId})
+    await User.deleteOne({_id: userId})
+    // delete cookie if it is set in Authorization Header
+    if (req.headers.Authorization){
+        delete req.headers.Authorization
+    }
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+    return res
+    .status(httpStatusCodes.OK)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(
+        httpStatusCodes.OK,
+        {},
+        "acoount has been deleted successfully"
+    ))
+})
+
 export {
     updateUserDetaiils,
     changePassword,
@@ -196,5 +232,6 @@ export {
     getCurrentUser,
     getUserDetailsById,
     addPhoneNumber,
-    toggleTwoStepAuthentication
+    toggleTwoStepAuthentication,
+    deleteAccount
 }

@@ -5,7 +5,8 @@ import {
     getCurrentUser,
     getUserDetailsById,
     addPhoneNumber,
-    toggleTwoStepAuthentication
+    toggleTwoStepAuthentication,
+    deleteAccount
 } from '../controllers/user.controller.js'
 import {Router} from 'express'
 import { verityJWT } from '../middlewares/verityJWT.middleware.js'
@@ -26,6 +27,8 @@ router.route('/change-avatar')
 
 router.route('/update-phone-number').patch(addPhoneNumber)
 router.route('/toggle-two-step-authentication').patch(toggleTwoStepAuthentication)
+
+router.route("/").delete(deleteAccount)
 
 
 export default router;

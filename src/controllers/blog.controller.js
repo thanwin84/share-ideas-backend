@@ -45,9 +45,9 @@ const createBlog = asyncHandler(async (req, res)=>{
         
     })
     return res
-    .status(httpStatusCodes.OK)
+    .status(httpStatusCodes.CREATED)
     .json(new ApiResponse(
-        httpStatusCodes.OK,
+        httpStatusCodes.CREATED,
         newBlog,
         "blog has been created successfully"
     ))
@@ -68,9 +68,9 @@ const deleteBlog = asyncHandler(async (req, res)=>{
         throw new Api404Error(`Blog with id ${blogId}`)
     }
     return res
-    .status(httpStatusCodes.OK)
+    .status(httpStatusCodes.NO_CONTENT)
     .json(new ApiResponse(
-        httpStatusCodes.OK,
+        httpStatusCodes.NO_CONTENT,
         {},
         "blog has been deleted successfully"
     ))

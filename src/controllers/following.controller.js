@@ -34,9 +34,9 @@ const toggleFollowing = asyncHandler(async (req, res)=>{
       })
     
       return res
-      .status(httpStatusCodes.OK)
+      .status(httpStatusCodes.CREATED)
       .json(new ApiResponse(
-          httpStatusCodes.OK,
+          httpStatusCodes.CREATED,
           following,
           `User has followed succesffully`
       ))

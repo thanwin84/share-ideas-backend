@@ -53,7 +53,7 @@ const register = asyncHandler(async (req, res)=>{
     const user = {...newUser.toObject(), password: undefined}
     
     return res
-    .status(200)
+    .status(httpStatusCodes.CREATED)
     .json(new ApiResponse(
         200,
         user,

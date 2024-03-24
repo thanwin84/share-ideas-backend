@@ -33,9 +33,9 @@ const toggleCommentLike = asyncHandler(async (req, res)=>{
         await comment.save()
 
         return res
-        .status(httpStatusCodes.OK)
+        .status(httpStatusCodes.CREATED)
         .json(new ApiResponse(
-            httpStatusCodes.OK,
+            httpStatusCodes.CREATED,
             like,
             "Comment has been liked successfully"
         ))
@@ -46,9 +46,9 @@ const toggleCommentLike = asyncHandler(async (req, res)=>{
         await comment.save()
 
         return res
-        .status(httpStatusCodes.OK)
+        .status(httpStatusCodes.NO_CONTENT)
         .json(new ApiResponse(
-            httpStatusCodes.OK,
+            httpStatusCodes.NO_CONTENT,
             {},
             "comment has been disliked successfully"
         ))
@@ -81,9 +81,9 @@ const toggleBlogLike = asyncHandler(async (req, res)=>{
         await blog.save()
 
         return res
-        .status(httpStatusCodes.OK)
+        .status(httpStatusCodes.CREATED)
         .json(new ApiResponse(
-            httpStatusCodes.OK,
+            httpStatusCodes.CREATED,
             like,
             "blog has been liked successfully"
         ))
@@ -94,9 +94,9 @@ const toggleBlogLike = asyncHandler(async (req, res)=>{
         await blog.save()
 
         return res
-        .status(httpStatusCodes.OK)
+        .status(httpStatusCodes.NO_CONTENT)
         .json(new ApiResponse(
-            httpStatusCodes.OK,
+            httpStatusCodes.NO_CONTENT,
             {},
             "Blog has been disliked successfully"
         ))

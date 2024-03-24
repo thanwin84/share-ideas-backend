@@ -45,9 +45,9 @@ const addCommentToBlog = asyncHandler(async (req, res)=>{
     await blog.save({validateBeforeSave: false})
 
     return res
-    .status(httpStatusCodes.OK)
+    .status(httpStatusCodes.CREATED)
     .json(new ApiResponse(
-        httpStatusCodes.OK,
+        httpStatusCodes.CREATED,
         comment,
         "comment has been made successfully"
     ))
@@ -111,9 +111,9 @@ const deleteBlogComment = asyncHandler(async (req, res)=>{
     await blog.save({validateBeforeSave: false})
         
     return res
-    .status(httpStatusCodes.OK)
+    .status(httpStatusCodes.NO_CONTENT)
     .json(new ApiResponse(
-        httpStatusCodes.OK,
+        httpStatusCodes.NO_CONTENT,
         {},
         "Comment is deleted successfully"
     ))
